@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório de Agenciamentos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f6f2;--surface:#ffffff;--border:#e4e2dc;
+  --text:#1a1916;--muted:#6b6a65;--hint:#a09e98;
+  --accent:#2a5cff;--accent-bg:#eef1ff;
+  --green:#1a7a4a;--green-bg:#e6f5ed;
+  --red:#c0392b;--red-bg:#fdecea;
+  --radius:10px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;padding:32px 16px}
+.container{max-width:780px;margin:0 auto}
+.header{text-align:center;margin-bottom:32px}
+.header-icon{width:48px;height:48px;background:var(--accent-bg);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.header h1{font-size:22px;font-weight:600;color:var(--text);margin-bottom:4px}
+.header p{font-size:14px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+.card-sub{font-size:12px;color:var(--muted);margin-bottom:20px}
+.month-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.month-row label{font-size:13px;font-weight:500;color:var(--muted);white-space:nowrap}
+select.month-sel{padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:14px;cursor:pointer;outline:none}
+select.month-sel:focus{border-color:var(--accent)}
+.table-wrap{overflow-x:auto;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;min-width:720px}
+thead th{text-align:left;font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap}
+tbody td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+.td-sel{width:100%;font-size:13px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;outline:none}
+.td-sel:focus{border-color:var(--accent)}
+.td-input{width:100%;font-size:13px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;outline:none}
+.td-input:focus{border-color:var(--accent)}
+.del-btn{background:none;border:none;color:var(--hint);font-size:20px;cursor:pointer;line-height:1;padding:0 4px;border-radius:4px;transition:all .15s}
+.del-btn:hover{color:var(--red);background:var(--red-bg)}
+.toolbar{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.btn-add{padding:8px 16px;border-radius:8px;border:1px solid var(--accent);background:var(--accent-bg);color:var(--accent);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.btn-add:hover{background:var(--accent);color:#fff}
+.counter{font-size:12px;color:var(--hint);margin-left:auto}
+.btn-submit{width:100%;padding:13px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-top:8px}
+.btn-submit:hover{opacity:.88}
+.btn-submit:disabled{opacity:.5;cursor:default}
+.success-screen{display:none;text-align:center;padding:48px 24px}
+.success-icon{width:64px;height:64px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.success-screen h2{font-size:20px;font-weight:600;color:var(--text);margin-bottom:8px}
+.success-screen p{font-size:14px;color:var(--muted);margin-bottom:24px;line-height:1.7}
+.success-detail{background:var(--bg);border-radius:8px;padding:14px 18px;font-size:13px;color:var(--muted);text-align:left;margin-bottom:24px}
+.success-detail strong{color:var(--text);display:block;margin-bottom:4px}
+.btn-novo{padding:10px 24px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;transition:all .15s}
+.btn-novo:hover{background:var(--bg)}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px}
+.form-input{width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--accent)}
+.empty-row td{text-align:center;padding:28px;color:var(--hint);font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="container" id="main-container">
+
+  <!-- CONFIG (primeira vez) -->
+  <div id="cfg-section" style="display:none">
+    <div class="header">
+      <div class="header-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" fill="#2a5cff"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#2a5cff" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <h1>Configuração inicial</h1>
+      <p>Informe as credenciais do Supabase para conectar o formulário</p>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">URL do projeto Supabase</label>
+        <input class="form-input" id="cfg-url" placeholder="https://xxxxxxxxxxxx.supabase.co">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chave anon / public (Legacy)</label>
+        <input class="form-input" id="cfg-key" placeholder="eyJhbGciOiJIUzI1NiIsIn...">
+      </div>
+      <button class="btn-submit" onclick="saveCfg()">Salvar e abrir formulário</button>
+    </div>
+  </div>
+
+  <!-- FORMULÁRIO -->
+  <div id="form-section" style="display:none">
+    <div class="header">
+      <div class="header-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.9 8.6H22L16.5 12.9L18.5 20L12 15.7L5.5 20L7.5 12.9L2 8.6H9.1L12 2z" fill="#2a5cff" opacity=".85"/></svg>
+      </div>
+      <h1>Relatório de agenciamentos</h1>
+      <p>Registre as captações, retiradas e reagenciamentos do mês</p>
+    </div>
+
+    <div class="card">
+      <div class="month-row" style="margin-bottom:0">
+        <label>Mês de referência:</label>
+        <select class="month-sel" id="form-month"></select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Imóveis do mês</div>
+      <div class="card-sub">Adicione um imóvel por linha, informando o movimento, a finalidade e a tipologia.</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:150px">Movimento</th>
+              <th style="width:130px">Cód. imóvel</th>
+              <th style="width:150px">Finalidade</th>
+              <th style="width:170px">Tipologia</th>
+              <th style="width:36px"></th>
+            </tr>
+          </thead>
+          <tbody id="form-tbody"></tbody>
+        </table>
+      </div>
+      <div class="toolbar">
+        <button class="btn-add" onclick="addRow()">+ Adicionar imóvel</button>
+        <span class="counter" id="row-counter">0 imóveis</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:4px">Pronto para enviar?</div>
+      <div class="card-sub" style="margin-bottom:16px">Verifique se todos os campos estão preenchidos corretamente antes de enviar.</div>
+      <button class="btn-submit" id="btn-submit" onclick="submitForm()">Enviar relatório</button>
+    </div>
+  </div>
+
+  <!-- SUCESSO -->
+  <div id="success-section" class="card" style="display:none">
+    <div class="success-screen" style="display:block">
+      <div class="success-icon">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M8 16l5.5 5.5L24 10" stroke="#1a7a4a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h2>Relatório enviado com sucesso!</h2>
+      <p>Os dados foram registrados no sistema e já estão<br>disponíveis para consulta.</p>
+      <div class="success-detail">
+        <strong>Resumo do envio</strong>
+        <span id="success-info"></span>
+      </div>
+      <button class="btn-novo" onclick="resetForm()">Registrar novo mês</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var CFG_KEY = 'agenc_form_cfg';
+  var sbClient = null;
+  var rows = [];
+  var rowId = 0;
+
+  var FINALIDADE_OPTS = ['Residencial','Comercial'];
+  var TIPOLOGIA_FALLBACK = ['Casa','Apartamento','Kitnet','Sala comercial','Pavilhão'];
+  var TIPOLOGIA_OPTS = TIPOLOGIA_FALLBACK.slice();
+  var MOVIMENTO_OPTS = [
+    {v:'captacao', l:'Captação'},
+    {v:'retirada', l:'Retirada'},
+    {v:'reagenciamento', l:'Reagenciamento'}
+  ];
+
+  // ── CONFIG ──────────────────────────────────────────────────
+  function init() {
+    var cfg = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+    if (cfg.url && cfg.key) {
+      try {
+        sbClient = window.supabase.createClient(cfg.url, cfg.key);
+        showForm();
+      } catch(e) {
+        showCfg();
+      }
+    } else {
+      showCfg();
+    }
+  }
+
+  function saveCfg() {
+    var url = document.getElementById('cfg-url').value.trim();
+    var key = document.getElementById('cfg-key').value.trim();
+    if (!url || !key) { alert('Preencha a URL e a chave.'); return; }
+    try {
+      sbClient = window.supabase.createClient(url, key);
+      localStorage.setItem(CFG_KEY, JSON.stringify({url:url, key:key}));
+      showForm();
+    } catch(e) {
+      alert('Erro ao conectar. Verifique as credenciais.');
+    }
+  }
+  window.saveCfg = saveCfg;
+
+  function showCfg() {
+    document.getElementById('cfg-section').style.display = 'block';
+    document.getElementById('form-section').style.display = 'none';
+    document.getElementById('success-section').style.display = 'none';
+  }
+
+  async function showForm() {
+    document.getElementById('cfg-section').style.display = 'none';
+    document.getElementById('form-section').style.display = 'block';
+    document.getElementById('success-section').style.display = 'none';
+    buildMonths();
+    await loadTipologias();
+    if (!rows.length) { addRow(); addRow(); }
+    renderTable();
+  }
+
+  // ── TIPOLOGIAS (vêm do Supabase; se não houver tabela/linhas, usa a lista padrão) ──
+  async function loadTipologias() {
+    if (!sbClient) return;
+    try {
+      var res = await sbClient.from('comercial_tipologias').select('nome').order('nome', {ascending:true});
+      if (!res.error && res.data && res.data.length) {
+        TIPOLOGIA_OPTS = res.data.map(function(d){ return d.nome; });
+      }
+    } catch(e) { /* mantém fallback */ }
+  }
+
+  // ── MESES ───────────────────────────────────────────────────
+  function buildMonths() {
+    var now = new Date();
+    var opts = '';
+    for (var i = 5; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      var val = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      var label = d.toLocaleString('pt-BR',{month:'long',year:'numeric'});
+      label = label.charAt(0).toUpperCase() + label.slice(1);
+      opts += '<option value="'+val+'"'+(i===0?' selected':'')+'>'+label+'</option>';
+    }
+    document.getElementById('form-month').innerHTML = opts;
+  }
+
+  // ── TABELA ──────────────────────────────────────────────────
+  function addRow(data) {
+    var id = rowId++;
+    rows.push({
+      id: id,
+      movimento: data ? (data.movimento||'captacao') : 'captacao',
+      cod: data ? (data.cod||'') : '',
+      finalidade: data ? (data.finalidade||'') : '',
+      tipologia: data ? (data.tipologia||'') : ''
+    });
+    renderTable();
+  }
+  window.addRow = addRow;
+
+  function selOpts(opts, current) {
+    return '<option value="">Selecione</option>' + opts.map(function(o){
+      return '<option value="'+o+'"'+(current===o?' selected':'')+'>'+o+'</option>';
+    }).join('');
+  }
+
+  function movOpts(current) {
+    return MOVIMENTO_OPTS.map(function(o){
+      return '<option value="'+o.v+'"'+(current===o.v?' selected':'')+'>'+o.l+'</option>';
+    }).join('');
+  }
+
+  function renderTable() {
+    var tbody = document.getElementById('form-tbody');
+    document.getElementById('row-counter').textContent = rows.length + (rows.length===1?' imóvel':' imóveis');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Nenhum imóvel adicionado ainda.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function(r){
+      return '<tr>'
+        +'<td><select class="td-sel" data-id="'+r.id+'" data-field="movimento">'+movOpts(r.movimento)+'</select></td>'
+        +'<td><input class="td-input" data-id="'+r.id+'" data-field="cod" value="'+esc(r.cod)+'" placeholder="IM-001"></td>'
+        +'<td><select class="td-sel" data-id="'+r.id+'" data-field="finalidade">'+selOpts(FINALIDADE_OPTS, r.finalidade)+'</select></td>'
+        +'<td><select class="td-sel" data-id="'+r.id+'" data-field="tipologia">'+selOpts(TIPOLOGIA_OPTS, r.tipologia)+'</select></td>'
+        +'<td><button class="del-btn" data-id="'+r.id+'" data-action="del">×</button></td>'
+        +'</tr>';
+    }).join('');
+  }
+
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+  document.getElementById('form-tbody').addEventListener('input', function(e){
+    var el = e.target; var id = parseInt(el.dataset.id); var field = el.dataset.field;
+    if (isNaN(id)||!field) return;
+    var r = rows.find(function(x){ return x.id===id; });
+    if (r) r[field] = el.value;
+  });
+  document.getElementById('form-tbody').addEventListener('change', function(e){
+    var el = e.target; var id = parseInt(el.dataset.id); var field = el.dataset.field;
+    if (isNaN(id)||!field) return;
+    var r = rows.find(function(x){ return x.id===id; });
+    if (r) r[field] = el.value;
+  });
+  document.getElementById('form-tbody').addEventListener('click', function(e){
+    var el = e.target.closest('[data-action="del"]');
+    if (!el) return;
+    var id = parseInt(el.dataset.id);
+    rows = rows.filter(function(x){ return x.id!==id; });
+    renderTable();
+  });
+
+  // ── SUBMIT ──────────────────────────────────────────────────
+  async function submitForm() {
+    var mes = document.getElementById('form-month').value;
+    var validos = rows.filter(function(r){ return r.cod && r.finalidade && r.tipologia; });
+    if (!validos.length) {
+      alert('Preencha ao menos um imóvel com código, finalidade e tipologia.');
+      return;
+    }
+    var btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    var hasError = false;
+    for (var i = 0; i < validos.length; i++) {
+      var r = validos[i];
+      var payload = {
+        mes: mes,
+        cod_imovel: r.cod,
+        finalidade: r.finalidade,
+        tipologia: r.tipologia,
+        tipo_movimento: r.movimento
+      };
+      var res = await sbClient.from('carteira_movimentos').insert(payload);
+      if (res.error) { hasError = true; }
+    }
+
+    if (hasError) {
+      btn.disabled = false;
+      btn.textContent = 'Enviar relatório';
+      alert('Ocorreu um erro ao enviar. Verifique sua conexão e tente novamente.');
+      return;
+    }
+
+    var mesLabel = document.getElementById('form-month').options[document.getElementById('form-month').selectedIndex].text;
+    document.getElementById('success-info').textContent =
+      validos.length + ' imóvel(is) enviado(s) para ' + mesLabel + '.';
+
+    document.getElementById('form-section').style.display = 'none';
+    document.getElementById('success-section').style.display = 'block';
+  }
+  window.submitForm = submitForm;
+
+  function resetForm() {
+    rows = []; rowId = 0;
+    document.getElementById('btn-submit').disabled = false;
+    document.getElementById('btn-submit').textContent = 'Enviar relatório';
+    showForm();
+  }
+  window.resetForm = resetForm;
+
+  init();
+})();
+</script>
+</body>
+</html>
